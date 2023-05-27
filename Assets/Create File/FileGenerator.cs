@@ -6,18 +6,14 @@ using UnityEngine;
 
 public class FileGenerator : MonoBehaviour
 {
-    public int[,] datas = new int[,] { };
     public string[] nd;
+    public List<CharacterBOG> Bogs = new List<CharacterBOG>();
     private void Start()
     {
-        string filePath = Application.dataPath + "/Resources/";       
-        string file = "BalanceData/balance data.txt";
-        string data = File.ReadAllText(filePath + file);
+        //string[] split = data.Split("\n", StringSplitOptions.RemoveEmptyEntries);
+        //nd = split;
 
-        string[] split = data.Split("\n", StringSplitOptions.RemoveEmptyEntries);
-        nd = split;
-
-        string newpath = Application.dataPath + "/Metadata/";
+        /*string newpath = Application.dataPath + "/Metadata/";
         if (!Directory.Exists(newpath)) Directory.CreateDirectory(newpath);
 
         string fileJson = filePath + "/Files/" + 1;
@@ -35,9 +31,83 @@ public class FileGenerator : MonoBehaviour
         Debug.Log(JsonUtility.ToJson(character));
 
         string toJson = JsonUtility.ToJson(character);
-        File.WriteAllText(newpath + "file1", toJson);
+        File.WriteAllText(newpath + "file1", toJson);*/
+
+        string balanceData = Application.dataPath + "/Resources/BalanceData/balance data.txt";
+        string fileData = File.ReadAllText(balanceData);
+        nd = DataSplitter(fileData);
+        
+        string filePath = Application.dataPath + "/Resources/Files/";
+        Bogs = GetListFile<CharacterBOG>(filePath, 276);
+        
+        StartCoroutine(DataValue(nd, Bogs));
     }
-    
+
+    private string[] DataSplitter(string data)
+    {
+        string[] tmp;
+
+        tmp = data.Split("\n", StringSplitOptions.RemoveEmptyEntries);
+        
+        return tmp;
+    }
+
+    private IEnumerator DataValue(string[] data, List<CharacterBOG> datas)
+    {
+        for (int i = 0; i < data.Length; i++)
+        {
+            int index = 0;
+            CharacterBOG tmp = null;
+            
+            for (int j = 0; j < data[i].Length; j++)
+            {
+                if (int.TryParse(data[i][j].ToString(), out int v))
+                {
+                    tmp = EditAttributeBOG(datas[i], index, v);
+                    index++;
+                }
+                
+                yield return new WaitForSeconds(1f);
+            }
+            
+            CreateNewFile(tmp, i + 1);
+            Debug.Log($"Create No {i + 1}");
+        }
+    }
+
+    CharacterBOG EditAttributeBOG(CharacterBOG bog, int index, int setValue)
+    {
+        bog.attributes[index].value = setValue.ToString();
+        return bog;
+    }
+
+    private void CreateNewFile(CharacterBOG data, int fileIndex, string pathname = "/MetadataNew/")
+    {
+        string dir = Application.dataPath + pathname;
+        string json = JsonUtility.ToJson(data);
+        if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+        
+        File.WriteAllText(dir + fileIndex, json);
+    }
+
+    private T ReadRawFile<T>(string filePath)
+    {
+        string file = File.ReadAllText(filePath);
+        T json = JsonUtility.FromJson<T>(file);
+        
+        return json;
+    }
+
+    private List<T> GetListFile<T>(string filePath, int dataAmount)
+    {
+        List<T> tmp = new List<T>();
+        for (int i = 0; i < dataAmount; i++)
+        {
+            T newData = ReadRawFile<T>(filePath + (i + 1));
+            tmp.Add(newData);
+        }
+        return tmp;
+    }
 }
 
 [System.Serializable]
